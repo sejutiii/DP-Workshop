@@ -1,0 +1,1490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dynamic Programming in Problem Solving</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Lexend:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a fixed 1280×720 graph-paper stage (DP tables live on grids), scaled to fit any screen.
+   Single light theme by design: the speaker asked for a light deck. */
+:root {
+  --paper: #FBFCFE;
+  --grid: #E6ECF6;
+  --backdrop: #DDE5F1;
+  --card: #FFFFFF;
+  --line: #CCD6E8;
+  --ink: #1E2448;
+  --ink-soft: #5B6388;
+  --tangerine: #FF7A45;
+  --tangerine-soft: #FFE5D8;
+  --teal: #0FA294;
+  --teal-soft: #D3F2EE;
+  --sun: #FFC23D;
+  --sun-soft: #FFF1C6;
+  --sky: #3E8BFF;
+  --sky-soft: #E0ECFF;
+  --berry: #E04F7E;
+  --berry-soft: #FCDDE7;
+  --lilac: #8E7CF0;
+  --lilac-soft: #E7E2FD;
+
+  --display: "Fredoka", "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --body: "Lexend", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--backdrop); color: var(--ink); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+
+.viewport {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.stage {
+  position: relative; flex: none; width: 1280px; height: 720px; overflow: hidden;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px;
+  border-radius: 18px; box-shadow: 0 20px 60px rgba(30, 36, 72, .18);
+  transform-origin: center center;
+}
+
+/* ---------- slides ---------- */
+.slide {
+  position: absolute; inset: 0; padding: 40px 64px 76px; display: flex; flex-direction: column; gap: 18px;
+  opacity: 0; visibility: hidden; transform: translateX(24px);
+  transition: opacity .35s ease, transform .35s ease, visibility 0s linear .35s;
+}
+.slide.active { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .35s ease; }
+.slide.back { transform: translateX(-24px); }
+.sh { display: flex; flex-direction: column; gap: 4px; }
+.eyebrow { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: var(--tangerine); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.08; }
+h2 { font-size: 44px; font-weight: 600; }
+h3 { font-size: 24px; font-weight: 600; }
+p { margin: 0; line-height: 1.5; }
+.lead { font-size: 21px; color: var(--ink-soft); max-width: 60ch; }
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; gap: 20px; }
+.grow { flex: 1; min-width: 0; }
+.center { align-items: center; justify-content: center; }
+b, strong { font-weight: 600; }
+.hl-t { color: var(--tangerine); } .hl-teal { color: var(--teal); } .hl-berry { color: var(--berry); } .hl-sky { color: var(--sky); }
+mark { background: var(--sun-soft); color: inherit; padding: 0 .2em; border-radius: 4px; }
+
+.frag { opacity: 0; transform: translateY(10px); transition: opacity .3s ease, transform .3s ease; }
+.frag.shown { opacity: 1; transform: none; }
+
+/* ---------- chrome ---------- */
+.progress { position: absolute; top: 0; left: 0; height: 6px; background: var(--tangerine); border-radius: 0 6px 6px 0; transition: width .35s ease; z-index: 5; }
+.footer {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56px; padding: 0 22px 0 32px;
+  display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--ink-soft); z-index: 5;
+}
+.footer .brand { font-family: var(--display); font-weight: 600; color: var(--ink); }
+.footer .sec { padding: 3px 10px; border-radius: 999px; background: var(--card); border: 1.5px solid var(--line); }
+.footer .spacer { flex: 1; }
+.footer .num { font-variant-numeric: tabular-nums; font-family: var(--display); font-size: 16px; min-width: 64px; text-align: center; }
+.nav-btn { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--line); background: var(--card); color: var(--ink); font-size: 16px; cursor: pointer; display: grid; place-items: center; }
+.nav-btn:hover { border-color: var(--ink); }
+
+/* ---------- buttons & bits ---------- */
+.btn {
+  font-family: var(--display); font-weight: 600; font-size: 16px; color: var(--ink);
+  padding: 8px 16px; border: 2.5px solid var(--ink); border-radius: 12px; background: var(--card);
+  box-shadow: 0 3px 0 var(--ink); cursor: pointer; transition: transform .08s, box-shadow .08s, background .15s;
+}
+.btn:hover { background: var(--sun-soft); }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.btn.primary { background: var(--sun); }
+.btn.teal { background: var(--teal-soft); }
+.btn:disabled { opacity: .4; cursor: default; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 16px 20px; }
+.callout { background: var(--card); border: 2.5px solid var(--ink); border-radius: 16px; padding: 14px 20px; box-shadow: 4px 4px 0 var(--ink); font-size: 19px; line-height: 1.45; }
+.callout.sun { background: var(--sun-soft); }
+.callout.teal { background: var(--teal-soft); }
+.callout.berry { background: var(--berry-soft); }
+.pill { display: inline-block; font-family: var(--display); font-weight: 600; font-size: 14px; padding: 3px 12px; border-radius: 999px; border: 2px solid var(--ink); }
+.pill.greedy { background: var(--sun); } .pill.dp { background: var(--teal); color: #fff; }
+
+.explain {
+  min-height: 62px; background: var(--card); border: 2px dashed var(--line); border-radius: 14px;
+  padding: 12px 18px; font-size: 18px; line-height: 1.45;
+}
+.explain .sub { display: block; font-size: 14px; color: var(--ink-soft); }
+
+.code {
+  font-family: var(--mono); font-size: 15.5px; line-height: 1.6; background: var(--card);
+  border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; white-space: pre; margin: 0; color: var(--ink);
+  overflow-x: auto;
+}
+.code .k { color: var(--teal); font-weight: 600; }
+.code .c { color: var(--ink-soft); font-style: italic; }
+.code .f { color: var(--tangerine); font-weight: 600; }
+.code-title { font-family: var(--display); font-weight: 600; font-size: 15px; color: var(--ink-soft); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+
+/* coins */
+.coin {
+  width: 62px; height: 62px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  font-family: var(--display); font-weight: 700; font-size: 22px; color: #6B4A00;
+  background: radial-gradient(circle at 35% 30%, #FFF0B8 0%, var(--sun) 55%, #E5A21E 100%);
+  border: 3px solid #B97F0C; box-shadow: inset 0 -4px 0 rgba(150, 95, 0, .25), 0 3px 0 rgba(30, 36, 72, .2);
+}
+.coin.pop { animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes pop { from { transform: scale(.2) rotate(-40deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- title slide ---------- */
+#s-title { justify-content: center; padding-left: 80px; }
+.title-wrap { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: center; }
+.title-wrap h1 { font-size: 74px; font-weight: 700; line-height: 1.0; letter-spacing: -.01em; }
+.title-wrap h1 .dp { color: var(--tangerine); display: block; }
+.title-wrap h1 .rest { font-size: 46px; font-weight: 500; color: var(--ink); display: block; margin-top: 10px; }
+.speaker { margin-top: 30px; display: flex; flex-direction: column; gap: 4px; }
+.speaker .name { font-family: var(--display); font-size: 28px; font-weight: 600; }
+.speaker .role { font-size: 17px; color: var(--ink-soft); }
+.event-chips { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.event-chips span { font-family: var(--display); font-weight: 500; font-size: 15px; padding: 6px 14px; border-radius: 999px; background: var(--card); border: 2px solid var(--ink); }
+.event-chips span:first-child { background: var(--teal); color: #fff; }
+.fib-art { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.fib-row { display: grid; grid-template-columns: repeat(5, 64px); gap: 8px; }
+.fib-row div {
+  height: 64px; border-radius: 12px; border: 2.5px solid var(--ink); background: var(--card);
+  display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 24px;
+  opacity: 0; transform: scale(.5);
+}
+.slide.active .fib-row div { animation: fibIn .45s cubic-bezier(.3, 1.5, .5, 1) forwards; }
+@keyframes fibIn { to { opacity: 1; transform: none; } }
+.fib-row div small { position: absolute; }
+.fib-cap { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); }
+.robot { width: 150px; height: auto; }
+.robot .eye { animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.hint { position: absolute; right: 64px; bottom: 76px; font-family: var(--display); color: var(--ink-soft); font-size: 16px; }
+.kbd { display: inline-block; border: 2px solid var(--ink-soft); border-radius: 6px; padding: 0 7px; font-size: 14px; margin: 0 2px; }
+
+/* ---------- quote ---------- */
+.quote-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center; flex: 1; }
+blockquote { margin: 0; font-family: var(--display); font-size: 54px; font-weight: 600; line-height: 1.12; position: relative; }
+blockquote::before { content: "\201C"; position: absolute; left: -46px; top: -30px; font-size: 140px; color: var(--sun); line-height: 1; }
+blockquote em { font-style: normal; color: var(--tangerine); }
+.quote-by { margin-top: 18px; font-size: 19px; color: var(--ink-soft); }
+.steps-list { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
+.steps-list div { display: flex; gap: 14px; align-items: center; font-size: 19px; }
+.steps-list .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 600; }
+
+/* ---------- greedy bag ---------- */
+.bag-area { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bag { position: relative; width: 150px; height: 290px; display: flex; gap: 8px; }
+.bag .ticks { display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; text-align: right; width: 30px; padding: 0 0 0 0; transform: translateY(8px); }
+.bag .shell { position: relative; flex: 1; border: 3px solid var(--ink); border-radius: 10px 10px 26px 26px; background: var(--card); overflow: hidden; }
+.bag .shell::before { content: ""; position: absolute; left: 50%; top: -3px; width: 60px; height: 0; }
+.bag-handle { width: 70px; height: 26px; border: 3px solid var(--ink); border-bottom: none; border-radius: 30px 30px 0 0; margin-left: 38px; margin-bottom: -10px; }
+.bag-fill { position: absolute; inset: 0; display: flex; flex-direction: column-reverse; }
+.seg { display: grid; place-items: center; border-top: 2px solid var(--ink); font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--ink); animation: segIn .4s ease; overflow: hidden; }
+.seg:first-child { border-top: 2px solid var(--ink); }
+@keyframes segIn { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.bag-label { font-family: var(--display); font-weight: 600; font-size: 16px; }
+.bag-total { font-family: var(--display); font-size: 22px; font-weight: 600; }
+.bag-total b { color: var(--teal); font-size: 28px; }
+.items { display: flex; gap: 12px; flex-wrap: wrap; }
+.item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--card);
+  border: 2.5px solid var(--line); border-radius: 14px; min-width: 180px; transition: all .25s;
+}
+.item .swatch { width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--ink); background: var(--c); flex: none; }
+.item b { font-family: var(--display); font-size: 18px; display: block; }
+.item span { font-size: 14px; color: var(--ink-soft); }
+.item .ratio { margin-left: auto; font-family: var(--display); font-weight: 600; font-size: 15px; padding: 2px 9px; border-radius: 8px; background: var(--sun-soft); }
+.item.taken { border-color: var(--teal); background: var(--teal-soft); }
+.item.part { border-color: var(--teal); background: linear-gradient(90deg, var(--teal-soft) 80%, var(--card) 80%); }
+.item.skip { opacity: .45; border-style: dashed; }
+.item.best { border-color: var(--berry); background: var(--berry-soft); }
+
+/* coin change */
+.coin-stage { display: flex; flex-direction: column; gap: 18px; }
+.coin-line { display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 10px 18px; border-radius: 18px; background: var(--card); border: 2.5px solid var(--line); }
+.coin-line .lab { width: 150px; font-family: var(--display); font-weight: 600; font-size: 20px; flex: none; }
+.coin-line .coins { display: flex; gap: 10px; flex: 1; align-items: center; }
+.coin-line .res { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.coin-line.greedy-line { border-color: var(--sun); }
+.coin-line.best-line { border-color: var(--teal); }
+.purse { display: flex; gap: 26px; align-items: center; }
+.purse .target { font-family: var(--display); font-size: 30px; font-weight: 600; padding: 10px 22px; border-radius: 16px; background: var(--ink); color: #fff; }
+.purse .plus { font-size: 26px; color: var(--ink-soft); font-family: var(--display); }
+
+/* substructure */
+.eq-row { display: flex; align-items: center; gap: 18px; justify-content: center; }
+.big-eq { font-family: var(--display); font-size: 34px; font-weight: 600; }
+.opt-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 18px; background: var(--card); border: 2.5px solid var(--ink); border-radius: 18px; min-width: 190px; }
+.opt-card .f { font-family: var(--display); font-size: 24px; font-weight: 600; }
+.opt-card .note { font-size: 14px; color: var(--ink-soft); }
+.opt-card.winner { background: var(--teal-soft); box-shadow: 4px 4px 0 var(--teal); }
+.formula { font-family: var(--mono); font-size: 24px; text-align: center; padding: 14px 20px; background: var(--card); border: 2.5px solid var(--ink); border-radius: 14px; }
+
+/* tree */
+.tree-svg { width: 100%; height: auto; display: block; }
+.tree-svg .edge { stroke: var(--line); stroke-width: 2.5; }
+.tn circle { stroke: var(--ink); stroke-width: 2.5; }
+.tn text { font-family: var(--display); font-weight: 600; font-size: 17px; text-anchor: middle; fill: var(--ink); pointer-events: none; }
+.tn { cursor: pointer; transition: opacity .2s; }
+.tn.hit circle { stroke-dasharray: 5 4; stroke: var(--teal); stroke-width: 3; }
+.tn.hit text { fill: var(--teal); }
+.tn.dim { opacity: .22; }
+.tn.sel circle { stroke: var(--berry); stroke-width: 4.5; }
+.tn.new circle { stroke: var(--tangerine); stroke-width: 4.5; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; min-height: 34px; align-items: center; }
+.chip { font-family: var(--display); font-weight: 600; font-size: 15px; padding: 5px 12px; border-radius: 999px; border: 2px solid var(--ink); cursor: pointer; background: var(--card); color: var(--ink); }
+.chip[aria-pressed="true"] { outline: 3px solid var(--berry); }
+.counter { font-family: var(--display); font-size: 20px; }
+.counter b { font-size: 30px; color: var(--tangerine); font-variant-numeric: tabular-nums; }
+
+/* table viz */
+.tv { display: grid; gap: 5px; --cs: 56px; align-content: start; }
+.tv .head { display: grid; place-items: center; font-family: var(--display); font-weight: 600; color: var(--ink-soft); font-size: 16px; padding: 0 6px; text-align: center; line-height: 1.1; }
+.tv .head small { display: block; font-family: var(--body); font-weight: 400; font-size: 11.5px; }
+.tv .head.rh { justify-items: end; text-align: right; }
+.tv .cell {
+  position: relative; width: var(--cs); height: var(--cs); border: 2px solid var(--line); background: var(--card); border-radius: 9px;
+  display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 21px; font-variant-numeric: tabular-nums;
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.tv .cell .mk { position: absolute; left: 4px; top: 1px; font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+.tv .cell .badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); font-size: 11px; white-space: nowrap; background: var(--sky); color: #fff; border-radius: 7px; padding: 1px 6px; font-weight: 500; z-index: 2; }
+.tv .cell .badge:empty { display: none; }
+.tv .cell.cur { border-color: var(--tangerine); background: var(--tangerine-soft); transform: scale(1.08); z-index: 1; border-width: 3px; }
+.tv .cell.dep { border-color: var(--sky); background: var(--sky-soft); }
+.tv .cell.dep.win { border-color: var(--teal); background: var(--teal-soft); }
+.tv .cell.dep.win .badge { background: var(--teal); }
+.tv .cell.path { border-color: #D19A00; background: var(--sun); border-width: 3px; }
+.tv .cell.path .badge { background: var(--ink); }
+.tv .cell.base { background: #F3F6FB; }
+.tv .cell.blocked { background: repeating-linear-gradient(45deg, #E3E7EF 0 8px, #D3D9E4 8px 16px); color: var(--ink-soft); }
+.tv .cell.blocked .v { opacity: .55; }
+.tv .cell.start, .tv .cell.finish { border-color: var(--ink); }
+.tv-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+/* edit distance word */
+.word { display: flex; gap: 8px; min-height: 58px; align-items: center; flex-wrap: wrap; }
+.tile { width: 46px; height: 54px; border: 2.5px solid var(--ink); border-radius: 10px; display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 26px; background: var(--card); transition: all .25s; }
+.tile.ok { background: var(--teal-soft); border-color: var(--teal); }
+.tile.rep { background: var(--sun); }
+.tile.del { background: var(--berry-soft); border-color: var(--berry); text-decoration: line-through; color: var(--berry); }
+.tile.ins { background: var(--sky-soft); border-color: var(--sky); }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; }
+.legend span { font-size: 15px; padding: 5px 10px; border-radius: 10px; background: var(--card); border: 2px solid var(--line); }
+.legend b { font-family: var(--display); font-size: 18px; margin-right: 4px; }
+
+/* reveal */
+#s-reveal { align-items: center; justify-content: center; text-align: center; }
+#s-reveal h2 { font-size: 66px; font-weight: 700; }
+#s-reveal h2 span { color: var(--tangerine); }
+.confetti { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.trio { display: flex; gap: 16px; justify-content: center; margin-top: 8px; }
+.trio div { font-family: var(--display); font-size: 22px; font-weight: 600; padding: 12px 20px; border-radius: 16px; border: 2.5px solid var(--ink); background: var(--card); }
+.trio div:nth-child(1) { background: var(--sun-soft); } .trio div:nth-child(3) { background: var(--teal-soft); } .trio div:nth-child(5) { background: var(--sky-soft); }
+.trio i { font-style: normal; color: var(--ink-soft); align-self: center; font-size: 26px; border: none; padding: 0; background: none; }
+.funfact { max-width: 760px; font-size: 16px; color: var(--ink-soft); }
+
+/* properties */
+.props { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.prop { display: flex; flex-direction: column; gap: 12px; padding: 22px 24px; border-radius: 20px; border: 2.5px solid var(--ink); background: var(--card); box-shadow: 6px 6px 0 var(--ink); }
+.prop h3 { font-size: 28px; display: flex; gap: 14px; align-items: center; }
+.prop p { font-size: 18px; }
+.prop .ex { font-family: var(--mono); font-size: 15px; background: var(--paper); border-radius: 10px; padding: 10px 12px; border: 1.5px solid var(--line); }
+.prop.a { background: var(--sun-soft); } .prop.b { background: var(--teal-soft); }
+
+/* compare */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.ms { display: flex; flex-direction: column; gap: 12px; align-items: center; padding: 12px 0; }
+.ms .lvl { display: flex; gap: 14px; }
+.ms .blk { display: flex; border: 2.5px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--card); }
+.ms .blk span { width: 26px; height: 32px; display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 15px; }
+.ms .blk span + span { border-left: 1.5px solid var(--line); }
+.cmp { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 16px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; overflow: hidden; }
+.cmp th, .cmp td { padding: 9px 14px; text-align: left; border-bottom: 1.5px solid var(--line); vertical-align: top; }
+.cmp tr:last-child td { border-bottom: none; }
+.cmp th { font-family: var(--display); font-weight: 600; font-size: 17px; background: var(--paper); }
+
+/* recipe */
+.recipe { width: 100%; border-collapse: separate; border-spacing: 0 7px; font-size: 17px; }
+.recipe th { font-family: var(--display); font-weight: 600; text-align: left; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding: 0 14px; }
+.recipe td { background: var(--card); padding: 9px 14px; border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); }
+.recipe td:first-child { border-left: 2px solid var(--line); border-radius: 12px 0 0 12px; font-weight: 500; }
+.recipe td:last-child { border-right: 2px solid var(--line); border-radius: 0 12px 12px 0; font-family: var(--mono); font-size: 15px; }
+.recipe td.arrow { width: 40px; text-align: center; font-size: 22px; color: var(--tangerine); padding: 0; background: none; border: none; }
+.recipe td.part { font-family: var(--display); font-weight: 600; font-size: 19px; color: var(--teal); border-left: 2px solid var(--line); border-radius: 12px 0 0 12px; }
+.recipe td.prob { border-radius: 12px; border-right: 2px solid var(--line); }
+.clrs { display: flex; gap: 8px; align-items: stretch; }
+.clrs div { flex: 1; font-size: 14.5px; padding: 9px 12px; border-radius: 12px; background: var(--lilac-soft); border: 2px solid var(--lilac); line-height: 1.35; }
+.clrs div b { display: block; font-family: var(--display); font-size: 15px; color: var(--lilac); }
+
+/* quiz */
+.quiz { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+.qcard { perspective: 1200px; border: none; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.qcard .inner { position: relative; width: 100%; height: 100%; min-height: 200px; transition: transform .55s cubic-bezier(.3, 1.2, .5, 1); transform-style: preserve-3d; }
+.qcard[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.qcard .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 20px; border: 2.5px solid var(--ink); padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; box-shadow: 5px 5px 0 var(--ink); }
+.qcard .front { background: var(--card); }
+.qcard .front .q { font-size: 25px; line-height: 1.4; }
+.qcard .front .tap { margin-top: auto; font-family: var(--display); color: var(--ink-soft); font-size: 15px; }
+.qcard .front .qn { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--tangerine); }
+.qcard .back { transform: rotateY(180deg); background: var(--paper); }
+.qcard .back.g { background: var(--sun-soft); } .qcard .back.d { background: var(--teal-soft); }
+.qcard .back p { font-size: 21px; line-height: 1.45; }
+
+/* practice */
+.practice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.lvl-col { display: flex; flex-direction: column; gap: 10px; }
+.lvl-col h3 { display: flex; align-items: center; gap: 10px; font-size: 24px; }
+.lvl-col h3 .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink); }
+.pbtn {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; border: 2.5px solid var(--ink);
+  background: var(--card); color: var(--ink); text-decoration: none; box-shadow: 0 3px 0 var(--ink); transition: transform .08s, background .15s;
+}
+.pbtn:hover { background: var(--sun-soft); transform: translateY(-2px); }
+.pbtn .site { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; color: #fff; flex: none; }
+.site.cses { background: var(--sky); } .site.at { background: var(--ink); } .site.lc { background: var(--tangerine); }
+.pbtn .t { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.pbtn .go { margin-left: auto; color: var(--ink-soft); }
+.sets { display: flex; gap: 12px; align-items: center; font-size: 16px; color: var(--ink-soft); }
+.sets a { color: var(--ink); font-weight: 500; }
+
+/* thanks */
+#s-thanks { justify-content: center; }
+.thanks { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; }
+.thanks h2 { font-size: 84px; font-weight: 700; }
+.thanks h2 span { color: var(--tangerine); }
+.recap { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; font-size: 20px; }
+.recap div { display: flex; gap: 12px; align-items: center; }
+.recap .n { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); color: #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 600; flex: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001s !important; transition-duration: .001s !important; }
+}
+</style>
+</head>
+<body>
+<div class="viewport">
+<div class="stage" id="stage">
+  <div class="progress" id="progress"></div>
+
+  <!-- 1. Title -->
+  <section class="slide" id="s-title" data-section="Opening">
+    <div class="title-wrap">
+      <div>
+        <h1><span class="dp">Dynamic Programming</span><span class="rest">in Problem Solving</span></h1>
+        <div class="speaker">
+          <div class="name">Sejuti Sharmin Siddiqui</div>
+          <div class="role">Former AI Intern, Samsung R&amp;D Institute Bangladesh</div>
+        </div>
+        <div class="event-chips">
+          <span>BdGPC'26 Training Session</span>
+          <span>Bangladesh Open Source Network</span>
+        </div>
+      </div>
+      <div class="fib-art">
+        <div data-robot></div>
+        <div class="fib-row" id="fibRow"></div>
+        <div class="fib-cap">dp[i] = dp[i−1] + dp[i−2]</div>
+      </div>
+    </div>
+    <div class="hint">Press <span class="kbd">→</span> to begin</div>
+  </section>
+
+  <!-- 2. Quote -->
+  <section class="slide" data-section="Opening">
+    <div class="quote-grid">
+      <div style="padding-left:48px">
+        <blockquote>Understanding a problem is <em>half the solution.</em></blockquote>
+        <div class="quote-by">— attributed to Socrates</div>
+        <div class="steps-list">
+          <div class="frag"><span class="n">1</span><span>Read slowly. What is the input? What is the goal? What are the limits?</span></div>
+          <div class="frag"><span class="n">2</span><span>Play with tiny examples by hand. Look for patterns.</span></div>
+          <div class="frag"><span class="n">3</span><span>Only then pick a tool: brute force, greedy, or <b class="hl-t">something new today</b>.</span></div>
+        </div>
+      </div>
+      <div class="row center">
+        <svg viewBox="0 0 300 300" width="300" height="300" aria-hidden="true">
+          <rect x="30" y="40" width="200" height="230" rx="16" style="fill:var(--card);stroke:var(--ink);stroke-width:4"/>
+          <rect x="54" y="72" width="120" height="12" rx="6" style="fill:var(--ink)"/>
+          <rect x="54" y="104" width="150" height="9" rx="4.5" style="fill:var(--line)"/>
+          <rect x="54" y="124" width="132" height="9" rx="4.5" style="fill:var(--line)"/>
+          <rect x="54" y="144" width="80" height="12" rx="4.5" style="fill:var(--sun)"/>
+          <rect x="140" y="144" width="60" height="9" rx="4.5" style="fill:var(--line)"/>
+          <rect x="54" y="168" width="140" height="9" rx="4.5" style="fill:var(--line)"/>
+          <rect x="54" y="188" width="110" height="9" rx="4.5" style="fill:var(--line)"/>
+          <rect x="54" y="216" width="70" height="26" rx="8" style="fill:var(--teal-soft);stroke:var(--teal);stroke-width:2.5"/>
+          <circle cx="190" cy="168" r="52" style="fill:rgba(62,139,255,.12);stroke:var(--ink);stroke-width:7"/>
+          <line x1="228" y1="206" x2="272" y2="252" style="stroke:var(--ink);stroke-width:14;stroke-linecap:round"/>
+          <line x1="230" y1="208" x2="270" y2="250" style="stroke:var(--tangerine);stroke-width:7;stroke-linecap:round"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Greedy recap + Fractional Knapsack -->
+  <section class="slide" data-section="From Greedy to DP">
+    <div class="sh"><div class="eyebrow">Quick recap · Greedy</div><h2>Fractional Knapsack: greedy works!</h2></div>
+    <div class="body" id="fracDemo">
+      <div class="row grow">
+        <div class="grow" style="display:flex;flex-direction:column;gap:14px">
+          <div class="callout sun">Greedy = at every step, take what looks <b>best right now</b>, and never look back.</div>
+          <p style="font-size:18px">Your bag holds <b>10 kg</b>. You may <b>cut</b> items into pieces. Maximize the total value.</p>
+          <div class="items"></div>
+          <div>
+            <div class="code-title">Greedy pseudocode</div>
+<pre class="code"><span class="k">sort</span> items by value / weight, high → low
+space = 10
+<span class="k">for each</span> item <span class="k">in</span> that order:
+    take = <span class="f">min</span>(item.weight, space)      <span class="c">// cut if needed</span>
+    total = total + take × item.ratio
+    space = space − take</pre>
+          </div>
+        </div>
+        <div class="bag-area" style="width:250px">
+          <div class="bag-label">Your bag (10 kg)</div>
+          <div><div class="bag-handle"></div><div class="bag"><div class="ticks"></div><div class="shell"><div class="bag-fill"></div></div></div></div>
+          <div class="bag-total">Value: <b class="total">0</b></div>
+          <div class="controls"><button class="btn primary" data-act="step">Greedy step</button><button class="btn" data-act="reset">Reset</button></div>
+        </div>
+      </div>
+      <div class="explain msg"></div>
+    </div>
+  </section>
+
+  <!-- 4. Coin change: greedy fails -->
+  <section class="slide" data-section="From Greedy to DP">
+    <div class="sh"><div class="eyebrow">A new problem · Coin Change</div><h2>Make ৳6 with the fewest coins</h2></div>
+    <div class="body" id="coinDemo">
+      <div class="purse">
+        <div class="target">৳6</div>
+        <div class="plus">using coins</div>
+        <div class="coin">1</div><div class="coin">3</div><div class="coin">4</div>
+        <div class="plus" style="font-size:17px">(as many of each as you like)</div>
+      </div>
+      <div class="coin-stage">
+        <div class="coin-line greedy-line"><div class="lab">Greedy says</div><div class="coins g-coins"></div><div class="res g-res">left: ৳6</div></div>
+        <div class="coin-line best-line"><div class="lab">Best answer</div><div class="coins b-coins"></div><div class="res b-res"></div></div>
+      </div>
+      <div class="row" style="align-items:center">
+        <div class="controls"><button class="btn primary" data-act="step">Greedy step</button><button class="btn teal" data-act="best">Reveal best</button><button class="btn" data-act="reset">Reset</button></div>
+        <div class="explain msg grow"></div>
+      </div>
+      <div class="callout berry frag"><b>Greedy fails. Why?</b> Taking ৳4 looked best <i>now</i>, but it left ৳2, which is awkward to make. A choice that looks best now can ruin what comes later.</div>
+    </div>
+  </section>
+
+  <!-- 5. Understanding the problem better -->
+  <section class="slide" data-section="From Greedy to DP">
+    <div class="sh"><div class="eyebrow">Understand the problem better</div><h2>Whatever the best answer is, it has a <span class="hl-t">last coin</span></h2></div>
+    <div class="body" style="gap:22px">
+      <p class="lead">The last coin is either ৳1, ৳3 or ৳4. Try all three. After that coin, we need the best way to make what is left.</p>
+      <div class="eq-row">
+        <div class="big-eq">best(6) =</div>
+        <div class="opt-card frag"><div class="coin">1</div><div class="f">1 + best(5)</div><div class="note">last coin ৳1, still need ৳5</div></div>
+        <div class="big-eq frag">or</div>
+        <div class="opt-card frag"><div class="coin">3</div><div class="f">1 + best(3)</div><div class="note">last coin ৳3, still need ৳3</div></div>
+        <div class="big-eq frag">or</div>
+        <div class="opt-card frag"><div class="coin">4</div><div class="f">1 + best(2)</div><div class="note">last coin ৳4, still need ৳2</div></div>
+      </div>
+      <div class="formula frag">best(x) = 1 + <span class="hl-t">min</span>( best(x−1), best(x−3), best(x−4) ) &nbsp;&nbsp; best(0) = 0</div>
+      <div class="callout teal frag">The best answer for ৳6 is <b>built from the best answers</b> of smaller amounts. Remember this idea. It has a name.</div>
+    </div>
+  </section>
+
+  <!-- 6. Recursion tree for coin change -->
+  <section class="slide" data-section="From Greedy to DP">
+    <div class="sh"><div class="eyebrow">Let's just write the recursion</div><h2>Who calls whom? The recursion tree of best(6)</h2></div>
+    <div class="body" id="coinTree">
+      <svg class="tree-svg" viewBox="0 0 1152 360"></svg>
+      <div class="row" style="align-items:center">
+        <div class="controls"><button class="btn primary" data-act="step">Next call</button><button class="btn" data-act="all">Grow all</button><button class="btn" data-act="reset">Reset</button></div>
+        <div class="counter">calls: <b class="calls">1</b></div>
+        <div class="grow"></div>
+        <div class="chips"></div>
+      </div>
+      <div class="callout berry frag">Same circle colour = same question asked again. <b>best(2) is solved 4 times</b> and best(1) 6 times. All that work is wasted.</div>
+    </div>
+  </section>
+
+  <!-- 7. Remember answers: dp table -->
+  <section class="slide" data-section="From Greedy to DP">
+    <div class="sh"><div class="eyebrow">Our fix</div><h2>Solve each amount <span class="hl-teal">once</span>, write it down, reuse it</h2></div>
+    <div class="body tv-wrap" id="coinTable">
+      <div class="row center" style="padding-top:12px"><div class="tv" style="--cs:88px"></div></div>
+      <div class="row grow">
+        <div style="width:520px">
+<pre class="code">dp[0] = 0
+<span class="k">for</span> x = 1 <span class="k">to</span> target:
+    dp[x] = ∞
+    <span class="k">for each</span> coin c ≤ x:
+        dp[x] = <span class="f">min</span>(dp[x], dp[x − c] + 1)
+answer = dp[target]</pre>
+        </div>
+        <div class="grow" style="display:flex;flex-direction:column;gap:12px">
+          <div class="controls"><button class="btn primary" data-act="step">Fill next</button><button class="btn" data-act="back">Back</button><button class="btn" data-act="play">Play</button><button class="btn teal" data-act="trace">Which coins?</button><button class="btn" data-act="reset">Reset</button></div>
+          <div class="explain"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Reveal -->
+  <section class="slide" id="s-reveal" data-section="From Greedy to DP">
+    <canvas class="confetti" id="confetti"></canvas>
+    <div data-robot style="margin-bottom:6px"></div>
+    <h2>Congratulations!<br>You just did <span>Dynamic Programming.</span></h2>
+    <div class="trio frag">
+      <div>Break it into smaller versions</div><i>→</i>
+      <div>Solve each one once</div><i>→</i>
+      <div>Store and build up</div>
+    </div>
+    <p class="funfact frag">Fun fact: Richard Bellman named it in the 1950s. “Programming” meant <i>planning with a table</i>, not coding, and he picked “dynamic” partly because it sounded impressive to his bosses.</p>
+  </section>
+
+  <!-- 9. Definition + properties -->
+  <section class="slide" data-section="What DP Is">
+    <div class="sh"><div class="eyebrow">Now with proper names</div><h2>What is Dynamic Programming?</h2></div>
+    <div class="body" style="gap:22px">
+      <div class="callout" style="font-size:21px">Solve a problem by combining answers to <b>smaller subproblems</b>, solving each subproblem <b>only once</b> and storing its answer.</div>
+      <p class="lead" style="font-size:19px">A problem is a good fit for DP when it has <b>both</b> of these properties:</p>
+      <div class="props">
+        <div class="prop a frag">
+          <h3><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="24" width="16" height="13" rx="3" style="fill:var(--sun);stroke:var(--ink);stroke-width:2.5"/><rect x="21" y="24" width="16" height="13" rx="3" style="fill:var(--sun);stroke:var(--ink);stroke-width:2.5"/><rect x="11" y="6" width="18" height="15" rx="3" style="fill:var(--tangerine);stroke:var(--ink);stroke-width:2.5"/></svg>Optimal Substructure</h3>
+          <p>The best answer to the big problem is built from the <b>best answers</b> to smaller subproblems.</p>
+          <div class="ex">best(6) = 1 + min(best(5), best(3), best(2))</div>
+        </div>
+        <div class="prop b frag">
+          <h3><svg width="44" height="40" viewBox="0 0 44 40" aria-hidden="true"><circle cx="16" cy="20" r="13" style="fill:rgba(15,162,148,.35);stroke:var(--ink);stroke-width:2.5"/><circle cx="28" cy="20" r="13" style="fill:rgba(62,139,255,.3);stroke:var(--ink);stroke-width:2.5"/></svg>Overlapping Subproblems</h3>
+          <p>The same subproblems come up <b>again and again</b>, so storing their answers saves lots of work.</p>
+          <div class="ex">best(2) was asked 4 times in the tree</div>
+        </div>
+      </div>
+      <p class="frag" style="font-size:17px;color:var(--ink-soft)">Missing optimal substructure? DP won't work. Missing overlap? Plain recursion (divide &amp; conquer) is already enough.</p>
+    </div>
+  </section>
+
+  <!-- 10. Fibonacci -->
+  <section class="slide" data-section="What DP Is">
+    <div class="sh"><div class="eyebrow">The classic example</div><h2>Fibonacci: watch the tree shrink</h2></div>
+    <div class="body" id="fibTree">
+      <div class="row grow">
+        <div style="width:760px"><svg class="tree-svg" viewBox="0 0 760 420"></svg></div>
+        <div class="grow" style="display:flex;flex-direction:column;gap:14px">
+          <div class="formula" style="font-size:19px">fib(n) = fib(n−1) + fib(n−2)<br><span style="font-size:15px;color:var(--ink-soft)">fib(0) = 0, fib(1) = 1</span></div>
+          <div class="controls"><button class="btn primary" data-act="step">Next call</button><button class="btn" data-act="all">Grow all</button><button class="btn" data-act="reset">Reset</button></div>
+          <button class="btn teal" data-act="memo" style="align-self:flex-start">Turn memoization ON</button>
+          <div class="counter">calls for fib(6): <b class="calls">1</b></div>
+          <div class="chips"></div>
+          <div class="explain" style="font-size:16px"><span><b>fib(40)</b> without memo: about <b class="hl-berry">331 million</b> calls.<br>With memo: just <b class="hl-teal">79</b>.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Top-down vs bottom-up -->
+  <section class="slide" data-section="What DP Is">
+    <div class="sh"><div class="eyebrow">Two ways to write DP</div><h2>Top-Down vs Bottom-Up</h2></div>
+    <div class="body">
+      <div class="split">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3><span class="hl-t">Top-Down</span> · Memoization</h3>
+          <p style="font-size:17px;color:var(--ink-soft)">Write the natural recursion. Before solving, check the notebook.</p>
+<pre class="code">memo = array filled with EMPTY
+
+<span class="k">function</span> <span class="f">fib</span>(n):
+    <span class="k">if</span> n ≤ 1: <span class="k">return</span> n
+    <span class="k">if</span> memo[n] ≠ EMPTY: <span class="k">return</span> memo[n]
+    memo[n] = <span class="f">fib</span>(n − 1) + <span class="f">fib</span>(n − 2)
+    <span class="k">return</span> memo[n]</pre>
+          <div class="card frag" style="font-size:16px;line-height:1.55">✔ Easy to write from the recurrence<br>✔ Only solves subproblems it needs<br>✘ Deep recursion can overflow the stack</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3><span class="hl-teal">Bottom-Up</span> · Tabulation</h3>
+          <p style="font-size:17px;color:var(--ink-soft)">Start from the smallest answers and fill the table in order.</p>
+<pre class="code">dp[0] = 0
+dp[1] = 1
+<span class="k">for</span> i = 2 <span class="k">to</span> n:
+    dp[i] = dp[i − 1] + dp[i − 2]
+<span class="k">return</span> dp[n]
+
+</pre>
+          <div class="card frag" style="font-size:16px;line-height:1.55">✔ No recursion, usually faster<br>✔ Easy to save memory (keep only the last rows)<br>✘ You must figure out the filling order</div>
+        </div>
+      </div>
+      <div class="callout sun frag" style="font-size:18px">Same answers, same table. Top-down asks “what do I need?”; bottom-up asks “what can I build next?”</div>
+    </div>
+  </section>
+
+  <!-- 12. DP vs Divide & Conquer -->
+  <section class="slide" data-section="What DP Is">
+    <div class="sh"><div class="eyebrow">Cousins, not twins</div><h2>DP vs Divide &amp; Conquer</h2></div>
+    <div class="body">
+      <div class="split">
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <h3>Merge Sort</h3>
+          <div class="ms">
+            <div class="lvl"><div class="blk"><span>8</span><span>3</span><span>5</span><span>1</span><span>9</span><span>2</span><span>7</span><span>4</span></div></div>
+            <div class="lvl"><div class="blk"><span>8</span><span>3</span><span>5</span><span>1</span></div><div class="blk"><span>9</span><span>2</span><span>7</span><span>4</span></div></div>
+            <div class="lvl"><div class="blk"><span>8</span><span>3</span></div><div class="blk"><span>5</span><span>1</span></div><div class="blk"><span>9</span><span>2</span></div><div class="blk"><span>7</span><span>4</span></div></div>
+          </div>
+          <p style="font-size:16px">Every piece is <b>different</b>. Nothing repeats, so nothing to store.</p>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px" id="miniFib">
+          <h3>Fibonacci</h3>
+          <svg class="tree-svg" viewBox="0 0 520 190"></svg>
+          <p style="font-size:16px">Same pieces <b class="hl-berry">again and again</b>. Store them and reuse.</p>
+        </div>
+      </div>
+      <table class="cmp frag">
+        <tr><th></th><th>Divide &amp; Conquer</th><th>Dynamic Programming</th></tr>
+        <tr><td><b>Subproblems</b></td><td>Independent, no repeats</td><td>Overlap, repeat many times</td></tr>
+        <tr><td><b>Each solved</b></td><td>Once, naturally</td><td>Once, <i>because we store it</i></td></tr>
+        <tr><td><b>Examples</b></td><td>Merge sort, quick sort, binary search</td><td>Fibonacci, coin change, knapsack, edit distance</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 13. Recipe -->
+  <section class="slide" data-section="What DP Is">
+    <div class="sh"><div class="eyebrow">The recipe</div><h2>Each property of the problem gives you part of the solution</h2></div>
+    <div class="body" style="gap:10px">
+      <table class="recipe">
+        <tr><th>In the problem…</th><th></th><th>…becomes</th><th>Coin change</th></tr>
+        <tr class="frag"><td class="prob">What exactly is one subproblem?</td><td class="arrow">→</td><td class="part">State</td><td>dp[x] = fewest coins for ৳x</td></tr>
+        <tr class="frag"><td class="prob">The smallest, obvious subproblems</td><td class="arrow">→</td><td class="part">Base case</td><td>dp[0] = 0</td></tr>
+        <tr class="frag"><td class="prob">Optimal substructure</td><td class="arrow">→</td><td class="part">Transition</td><td>dp[x] = 1 + min dp[x − c]</td></tr>
+        <tr class="frag"><td class="prob">Overlapping subproblems</td><td class="arrow">→</td><td class="part">Lookup table</td><td>array dp[0 … target]</td></tr>
+        <tr class="frag"><td class="prob">Who depends on whom</td><td class="arrow">→</td><td class="part">Filling order</td><td>x = 0, 1, 2, … target</td></tr>
+        <tr class="frag"><td class="prob">The original question</td><td class="arrow">→</td><td class="part">Answer cell</td><td>dp[target]</td></tr>
+      </table>
+      <div class="clrs frag">
+        <div><b>1 · Characterize</b>the structure of an optimal solution</div>
+        <div><b>2 · Define</b>its value recursively</div>
+        <div><b>3 · Compute</b>values bottom-up</div>
+        <div><b>4 · Construct</b>the actual solution from the table</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14a. 0-1 Knapsack: greedy fails -->
+  <section class="slide" data-section="Worked Problems">
+    <div class="sh"><div class="eyebrow">Problem 1 · 0-1 Knapsack</div><h2>Same bag, but no cutting allowed</h2></div>
+    <div class="body" id="knapGreedy">
+      <div class="row grow">
+        <div class="grow" style="display:flex;flex-direction:column;gap:16px">
+          <p style="font-size:19px">Bag holds <b>7 kg</b>. Each item is taken <b>whole or not at all</b>. Maximize value.</p>
+          <div class="items" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+          <div class="callout teal frag" style="font-size:18px"><b>State:</b> dp[i][w] = best value using only the first <i>i</i> items with <i>w</i> kg of space.<br><b>Choice for item i:</b> skip it, or take it (if it fits).</div>
+        </div>
+        <div class="row" style="gap:28px">
+          <div class="bag-area">
+            <div class="bag-label">Greedy (by ratio)</div>
+            <div><div class="bag-handle"></div><div class="bag g-bag"><div class="ticks"></div><div class="shell"><div class="bag-fill"></div></div></div></div>
+            <div class="bag-total">Value: <b class="total">0</b></div>
+          </div>
+          <div class="bag-area">
+            <div class="bag-label">Best</div>
+            <div><div class="bag-handle"></div><div class="bag b-bag"><div class="ticks"></div><div class="shell"><div class="bag-fill"></div></div></div></div>
+            <div class="bag-total">Value: <b class="btotal">?</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="align-items:center">
+        <div class="controls"><button class="btn primary" data-act="step">Greedy step</button><button class="btn teal" data-act="best">Reveal best</button><button class="btn" data-act="reset">Reset</button></div>
+        <div class="explain msg grow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14b. 0-1 Knapsack table -->
+  <section class="slide" data-section="Worked Problems">
+    <div class="sh"><div class="eyebrow">Problem 1 · 0-1 Knapsack</div><h2>Filling the table: skip it or take it?</h2></div>
+    <div class="body" id="knapTable">
+      <div class="row grow">
+        <div class="tv-wrap"><div class="tv" style="--cs:54px"></div></div>
+        <div class="grow" style="display:flex;flex-direction:column;gap:12px">
+<pre class="code" style="font-size:14px">dp[0][w] = 0 for every w
+<span class="k">for</span> i = 1 <span class="k">to</span> n:
+  <span class="k">for</span> w = 0 <span class="k">to</span> W:
+    dp[i][w] = dp[i−1][w]               <span class="c">// skip</span>
+    <span class="k">if</span> weight[i] ≤ w:                   <span class="c">// take</span>
+      dp[i][w] = <span class="f">max</span>(dp[i][w],
+          dp[i−1][w − weight[i]] + value[i])
+answer = dp[n][W]</pre>
+          <div class="controls"><button class="btn primary" data-act="step">Fill next</button><button class="btn" data-act="back">Back</button><button class="btn" data-act="play">Play</button><button class="btn teal" data-act="trace">Trace back</button><button class="btn" data-act="reset">Reset</button></div>
+          <div class="explain"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. Grid paths -->
+  <section class="slide" data-section="Worked Problems">
+    <div class="sh"><div class="eyebrow">Problem 2 · Grid Paths</div><h2>How many ways can the robot reach the flag?</h2></div>
+    <div class="body" id="gridDemo">
+      <div class="row grow">
+        <div class="tv-wrap"><div class="tv" style="--cs:70px"></div></div>
+        <div class="grow" style="display:flex;flex-direction:column;gap:12px">
+          <p style="font-size:18px">The robot starts at <b>S</b>, moves only <b>right</b> or <b>down</b>, and can't go through rocks.</p>
+          <div class="callout teal frag" style="font-size:17px">Every path into a cell arrives <b>from above</b> or <b>from the left</b>.<br><span style="font-family:var(--mono);font-size:16px">ways[r][c] = ways[r−1][c] + ways[r][c−1]</span><br>Rock → 0 ways. Start → 1 way.</div>
+          <div class="controls"><button class="btn primary" data-act="step">Fill next</button><button class="btn" data-act="back">Back</button><button class="btn" data-act="play">Play</button><button class="btn" data-act="reset">Reset</button></div>
+          <div class="explain"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. Edit distance -->
+  <section class="slide" data-section="Worked Problems">
+    <div class="sh"><div class="eyebrow">Problem 3 · For the experienced · Edit Distance</div><h2>Turn HORSE into ROS with the fewest edits</h2></div>
+    <div class="body" id="editDemo">
+      <div class="row grow">
+        <div class="tv-wrap"><div class="tv" style="--cs:58px"></div></div>
+        <div class="grow" style="display:flex;flex-direction:column;gap:11px;min-width:0">
+          <p style="font-size:16px"><b>dp[i][j]</b> = fewest edits to turn the first <i>i</i> letters of HORSE into the first <i>j</i> letters of ROS.</p>
+          <div class="legend">
+            <span><b>↖</b>replace (free if letters match)</span><span><b>↑</b>delete</span><span><b>←</b>insert</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:14px;line-height:1.55" class="card">
+            same letter: dp[i][j] = dp[i−1][j−1]<br>
+            otherwise: &nbsp;dp[i][j] = 1 + min(↖, ↑, ←)
+          </div>
+          <div class="controls"><button class="btn primary" data-act="step">Fill next</button><button class="btn" data-act="back">Back</button><button class="btn" data-act="play">Play</button><button class="btn teal" data-act="trace">Trace back</button><button class="btn" data-act="reset">Reset</button></div>
+          <div class="explain" style="font-size:16.5px"></div>
+          <div class="row" style="align-items:center;gap:14px">
+            <button class="btn" data-act="morph">Play the edits</button>
+            <div class="word"></div>
+          </div>
+          <div class="morph-cap" style="font-family:var(--display);font-size:17px;color:var(--ink-soft);min-height:22px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. Quiz -->
+  <section class="slide" data-section="Wrap-up">
+    <div class="sh"><div class="eyebrow">Quick quiz</div><h2>Greedy or DP? Tap a card to check</h2></div>
+    <div class="body">
+      <div class="quiz">
+        <button class="qcard" aria-pressed="false"><div class="inner">
+          <div class="face front"><div class="qn">Q1</div><div class="q">Choose the <b>most meetings</b> you can attend in one room, with no two overlapping.</div><div class="tap">Tap to reveal</div></div>
+          <div class="face back g"><span class="pill greedy">Greedy</span><p>Always pick the meeting that <b>ends earliest</b>. This choice is provably safe.</p></div>
+        </div></button>
+        <button class="qcard" aria-pressed="false"><div class="inner">
+          <div class="face front"><div class="qn">Q2</div><div class="q">Count the ways to climb <b>n stairs</b> if each move is 1 or 2 steps.</div><div class="tap">Tap to reveal</div></div>
+          <div class="face back d"><span class="pill dp">DP</span><p>ways(n) = ways(n−1) + ways(n−2). Fibonacci in disguise!</p></div>
+        </div></button>
+        <button class="qcard" aria-pressed="false"><div class="inner">
+          <div class="face front"><div class="qn">Q3</div><div class="q">Fewest coins for an amount using coins <b>1, 5, 10, 25</b>.</div><div class="tap">Tap to reveal</div></div>
+          <div class="face back g"><span class="pill greedy">Greedy works here</span><p>For this special coin set greedy is always right. With {1, 3, 4} it breaks. DP is right for <b>any</b> coin set.</p></div>
+        </div></button>
+        <button class="qcard" aria-pressed="false"><div class="inner">
+          <div class="face front"><div class="qn">Q4</div><div class="q">Find the length of the <b>longest increasing subsequence</b> of an array.</div><div class="tap">Tap to reveal</div></div>
+          <div class="face back d"><span class="pill dp">DP</span><p>lis[i] = 1 + max lis[j] over every j &lt; i with a[j] &lt; a[i].</p></div>
+        </div></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. Practice -->
+  <section class="slide" data-section="Wrap-up">
+    <div class="sh"><div class="eyebrow">Keep going at home</div><h2>Practice problems</h2></div>
+    <div class="body">
+      <div class="practice">
+        <div class="lvl-col">
+          <h3><span class="dot" style="background:var(--teal)"></span>Beginner</h3>
+          <a class="pbtn" href="https://leetcode.com/problems/climbing-stairs/" target="_blank" rel="noopener"><span class="site lc">LeetCode</span><span class="t">Climbing Stairs</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://atcoder.jp/contests/dp/tasks/dp_a" target="_blank" rel="noopener"><span class="site at">AtCoder</span><span class="t">Frog 1</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1633" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Dice Combinations</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://leetcode.com/problems/coin-change/" target="_blank" rel="noopener"><span class="site lc">LeetCode</span><span class="t">Coin Change</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1634" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Minimizing Coins</span><span class="go">↗</span></a>
+        </div>
+        <div class="lvl-col">
+          <h3><span class="dot" style="background:var(--sun)"></span>Intermediate</h3>
+          <a class="pbtn" href="https://atcoder.jp/contests/dp/tasks/dp_c" target="_blank" rel="noopener"><span class="site at">AtCoder</span><span class="t">Vacation</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://leetcode.com/problems/unique-paths-ii/" target="_blank" rel="noopener"><span class="site lc">LeetCode</span><span class="t">Unique Paths II</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1638" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Grid Paths</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://atcoder.jp/contests/dp/tasks/dp_d" target="_blank" rel="noopener"><span class="site at">AtCoder</span><span class="t">Knapsack 1</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1158" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Book Shop</span><span class="go">↗</span></a>
+        </div>
+        <div class="lvl-col">
+          <h3><span class="dot" style="background:var(--berry)"></span>Challenge</h3>
+          <a class="pbtn" href="https://leetcode.com/problems/edit-distance/" target="_blank" rel="noopener"><span class="site lc">LeetCode</span><span class="t">Edit Distance</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1639" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Edit Distance</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://atcoder.jp/contests/dp/tasks/dp_f" target="_blank" rel="noopener"><span class="site at">AtCoder</span><span class="t">LCS</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://atcoder.jp/contests/dp/tasks/dp_e" target="_blank" rel="noopener"><span class="site at">AtCoder</span><span class="t">Knapsack 2</span><span class="go">↗</span></a>
+          <a class="pbtn" href="https://cses.fi/problemset/task/1746" target="_blank" rel="noopener"><span class="site cses">CSES</span><span class="t">Array Description</span><span class="go">↗</span></a>
+        </div>
+      </div>
+      <div class="sets">Full problem sets: <a href="https://cses.fi/problemset/" target="_blank" rel="noopener">CSES Problem Set (Dynamic Programming section)</a> · <a href="https://atcoder.jp/contests/dp" target="_blank" rel="noopener">AtCoder Educational DP Contest</a></div>
+    </div>
+  </section>
+
+  <!-- 19. Thanks -->
+  <section class="slide" id="s-thanks" data-section="Wrap-up">
+    <div class="thanks">
+      <div>
+        <h2>Thank you!<br><span>Questions?</span></h2>
+        <div class="recap">
+          <div><span class="n">1</span>Understand the problem first.</div>
+          <div><span class="n">2</span>Look for optimal substructure and overlapping subproblems.</div>
+          <div><span class="n">3</span>Define the state, transition and base case. Then fill the table.</div>
+        </div>
+        <div class="speaker" style="margin-top:28px"><div class="name" style="font-size:22px">Sejuti Sharmin Siddiqui</div><div class="role">BdGPC'26 Training Session</div></div>
+      </div>
+      <div data-robot data-size="220"></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <span class="brand">Dynamic Programming</span>
+    <span class="sec" id="secName"></span>
+    <span class="spacer"></span>
+    <button class="nav-btn" id="fsBtn" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+    <button class="nav-btn" id="prevBtn" aria-label="Previous slide">←</button>
+    <span class="num" id="slideNum"></span>
+    <button class="nav-btn" id="nextBtn" aria-label="Next slide">→</button>
+  </div>
+</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fmt = x => Number.isInteger(x) ? String(x) : x.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+
+  /* ---------- robot mascot ---------- */
+  function robotSVG(size) {
+    return `<svg class="robot" style="width:${size}px" viewBox="0 0 120 140" aria-hidden="true">
+      <line x1="60" y1="10" x2="60" y2="26" style="stroke:var(--ink);stroke-width:4;stroke-linecap:round"/>
+      <circle cx="60" cy="9" r="7" style="fill:var(--tangerine);stroke:var(--ink);stroke-width:3"/>
+      <rect x="20" y="26" width="80" height="60" rx="20" style="fill:var(--card);stroke:var(--ink);stroke-width:4"/>
+      <circle class="eye" cx="45" cy="53" r="7" style="fill:var(--ink)"/>
+      <circle class="eye" cx="75" cy="53" r="7" style="fill:var(--ink)"/>
+      <circle cx="34" cy="68" r="5" style="fill:var(--berry-soft)"/><circle cx="86" cy="68" r="5" style="fill:var(--berry-soft)"/>
+      <path d="M50 69 Q60 77 70 69" style="fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round"/>
+      <rect x="28" y="92" width="64" height="42" rx="13" style="fill:var(--teal);stroke:var(--ink);stroke-width:4"/>
+      <rect x="40" y="101" width="40" height="22" rx="5" style="fill:var(--sun-soft);stroke:var(--ink);stroke-width:3"/>
+      <text x="60" y="117" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--ink)">dp[]</text>
+      <line x1="28" y1="104" x2="12" y2="94" style="stroke:var(--ink);stroke-width:4;stroke-linecap:round"/>
+      <line x1="92" y1="104" x2="108" y2="94" style="stroke:var(--ink);stroke-width:4;stroke-linecap:round"/>
+    </svg>`;
+  }
+  $$("[data-robot]").forEach(el => el.innerHTML = robotSVG(+el.dataset.size || 140));
+
+  /* ---------- title fib row ---------- */
+  (function () {
+    const f = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
+    $("#fibRow").innerHTML = f.map((v, i) => `<div style="animation-delay:${0.25 + i * 0.12}s">${v}</div>`).join("");
+  })();
+
+  /* ---------- deck navigation ---------- */
+  const stage = $("#stage");
+  const slides = $$(".slide");
+  const hooks = {};
+  let cur = 0;
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+  window.addEventListener("resize", fit); fit();
+  const frags = s => $$(".frag", s);
+  function go(i, opts = {}) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    const old = slides[cur];
+    old.classList.remove("active");
+    old.classList.toggle("back", i > cur);
+    cur = i;
+    const s = slides[cur];
+    s.classList.remove("back");
+    s.classList.add("active");
+    frags(s).forEach(f => f.classList.toggle("shown", !!opts.showAll));
+    $("#slideNum").textContent = `${cur + 1} / ${slides.length}`;
+    $("#secName").textContent = s.dataset.section || "";
+    $("#progress").style.width = `${(cur + 1) / slides.length * 100}%`;
+    try { history.replaceState(null, "", "#" + (cur + 1)); } catch (e) {}
+    if (hooks[s.id]) hooks[s.id]();
+  }
+  function next() {
+    const f = frags(slides[cur]).find(f => !f.classList.contains("shown"));
+    if (f) f.classList.add("shown"); else go(cur + 1);
+  }
+  function prev() {
+    const shown = frags(slides[cur]).filter(f => f.classList.contains("shown"));
+    if (shown.length) shown[shown.length - 1].classList.remove("shown");
+    else go(cur - 1, { showAll: true });
+  }
+  document.addEventListener("keydown", e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onBtn = e.target.closest && e.target.closest("button, a");
+    switch (e.key) {
+      case "ArrowRight": case "PageDown": case "n": e.preventDefault(); next(); break;
+      case "ArrowLeft": case "PageUp": case "p": e.preventDefault(); prev(); break;
+      case " ": if (!onBtn) { e.preventDefault(); next(); } break;
+      case "Home": go(0); break;
+      case "End": go(slides.length - 1, { showAll: true }); break;
+      case "f": case "F": toggleFs(); break;
+    }
+  });
+  function toggleFs() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    } catch (e) {}
+  }
+  $("#fsBtn").addEventListener("click", toggleFs);
+  $("#prevBtn").addEventListener("click", prev);
+  $("#nextBtn").addEventListener("click", next);
+  // keep arrow keys working after clicking a demo button
+  stage.addEventListener("click", e => { if (e.target.closest("button")) e.target.closest("button").blur(); });
+
+  /* ---------- confetti ---------- */
+  hooks["s-reveal"] = function () {
+    if (reduceMotion) return;
+    const cv = $("#confetti"), ctx = cv.getContext("2d");
+    cv.width = 1280; cv.height = 720;
+    const cols = ["#FF7A45", "#0FA294", "#FFC23D", "#3E8BFF", "#E04F7E", "#8E7CF0"];
+    const P = Array.from({ length: 160 }, () => ({
+      x: 640 + (Math.random() - .5) * 200, y: 300, vx: (Math.random() - .5) * 16, vy: -Math.random() * 14 - 4,
+      r: Math.random() * 6 + 4, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6, va: (Math.random() - .5) * .3
+    }));
+    const t0 = performance.now();
+    (function frame(t) {
+      ctx.clearRect(0, 0, 1280, 720);
+      P.forEach(p => {
+        p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore();
+      });
+      if (t - t0 < 3200) requestAnimationFrame(frame); else ctx.clearRect(0, 0, 1280, 720);
+    })(t0);
+  };
+
+  /* ---------- greedy knapsack demos ---------- */
+  function makeBag(bagEl, cap) {
+    $(".ticks", bagEl).innerHTML = Array.from({ length: cap + 1 }, (_, i) => `<span>${i}</span>`).join("");
+    const fill = $(".bag-fill", bagEl);
+    return {
+      clear() { fill.innerHTML = ""; },
+      add(w, it) {
+        const s = document.createElement("div");
+        s.className = "seg";
+        s.style.height = (w / cap * 100) + "%";
+        s.style.background = `var(${it.c})`;
+        s.innerHTML = `<span>${it.n}${w < it.w ? ` · ${w} kg` : ""}</span>`;
+        fill.appendChild(s);
+      }
+    };
+  }
+  function itemCards(el, items, unit) {
+    el.innerHTML = items.map(it => `<div class="item" data-n="${it.n}" style="--c:var(${it.c})"><div class="swatch"></div><div><b>${it.n}</b><span>${it.w} kg · value ${it.v}</span></div><div class="ratio">${fmt(it.v / it.w)} ${unit}</div></div>`).join("");
+  }
+
+  // Fractional knapsack
+  (function () {
+    const root = $("#fracDemo");
+    const items = [
+      { n: "Tea", w: 6, v: 30, c: "--teal-soft" },
+      { n: "Rice", w: 5, v: 20, c: "--sun-soft" },
+      { n: "Honey", w: 4, v: 12, c: "--tangerine-soft" }
+    ];
+    const cap = 10;
+    itemCards($(".items", root), items, "/kg");
+    const order = [...items].sort((a, b) => b.v / b.w - a.v / a.w);
+    const bag = makeBag($(".bag", root), cap);
+    const msg = $(".msg", root), tot = $(".total", root);
+    let k, left, total;
+    function reset() {
+      k = 0; left = cap; total = 0; bag.clear(); tot.textContent = "0";
+      $$(".item", root).forEach(e => e.className = "item");
+      msg.innerHTML = "Greedy rule: always grab the item with the highest <b>value per kg</b>. Press <b>Greedy step</b>.";
+    }
+    function step() {
+      if (k >= order.length) return;
+      const it = order[k++], card = $(`.item[data-n="${it.n}"]`, root);
+      const take = Math.min(it.w, left);
+      if (take <= 0) { card.classList.add("skip"); msg.innerHTML = `The bag is full, so ${it.n} stays out.`; }
+      else {
+        const val = take * it.v / it.w;
+        bag.add(take, it); left -= take; total += val;
+        card.classList.add(take < it.w ? "part" : "taken");
+        msg.innerHTML = take < it.w
+          ? `Only ${take} kg of space left, so cut ${it.n}: take ${take} of ${it.w} kg → +${fmt(val)}`
+          : `${it.n} has the best value per kg (${fmt(it.v / it.w)}). Take all ${it.w} kg → +${it.v}`;
+      }
+      tot.textContent = fmt(total);
+      if (k === order.length) msg.innerHTML += ` &nbsp;<b class="hl-teal">Total ${fmt(total)}. That's the best possible. Greedy works!</b>`;
+    }
+    root.addEventListener("click", e => {
+      const a = e.target.closest("[data-act]"); if (!a) return;
+      if (a.dataset.act === "step") step(); else reset();
+    });
+    reset();
+  })();
+
+  // Coin change greedy
+  (function () {
+    const root = $("#coinDemo");
+    const gC = $(".g-coins", root), bC = $(".b-coins", root), gR = $(".g-res", root), bR = $(".b-res", root), msg = $(".msg", root);
+    let left, used;
+    const coinEl = v => `<div class="coin pop">${v}</div>`;
+    function reset() {
+      left = 6; used = []; gC.innerHTML = ""; bC.innerHTML = ""; gR.textContent = "left: ৳6"; bR.textContent = "";
+      msg.innerHTML = "Greedy rule: always take the <b>biggest coin</b> that fits. What should greedy pick first?";
+    }
+    function step() {
+      if (left === 0) return;
+      const c = [4, 3, 1].find(c => c <= left);
+      used.push(c); left -= c; gC.insertAdjacentHTML("beforeend", coinEl(c));
+      gR.textContent = left ? `left: ৳${left}` : `${used.length} coins`;
+      msg.innerHTML = left
+        ? `Biggest coin ≤ ৳${left + c} is ৳${c}. Now ৳${left} is left.`
+        : `Done: ${used.join(" + ")} = ৳6 with <b>${used.length} coins</b>. Is that the best?`;
+    }
+    function best() {
+      bC.innerHTML = coinEl(3) + coinEl(3); bR.textContent = "2 coins!";
+      msg.innerHTML = `<span><b class="hl-teal">3 + 3 = ৳6 uses only 2 coins.</b> Greedy missed it.</span>`;
+    }
+    root.addEventListener("click", e => {
+      const a = e.target.closest("[data-act]"); if (!a) return;
+      ({ step, best, reset })[a.dataset.act]();
+    });
+    reset();
+  })();
+
+  // 0-1 knapsack greedy vs best
+  const KNAP = [
+    { n: "A", w: 1, v: 1, c: "--lilac-soft" },
+    { n: "B", w: 3, v: 4, c: "--sky-soft" },
+    { n: "C", w: 4, v: 5, c: "--teal-soft" },
+    { n: "D", w: 5, v: 7, c: "--sun-soft" }
+  ];
+  const KCAP = 7;
+  (function () {
+    const root = $("#knapGreedy");
+    itemCards($(".items", root), KNAP, "/kg");
+    const order = [...KNAP].sort((a, b) => b.v / b.w - a.v / a.w);
+    const gBag = makeBag($(".g-bag", root), KCAP), bBag = makeBag($(".b-bag", root), KCAP);
+    const msg = $(".msg", root), tot = $(".total", root), btot = $(".btotal", root);
+    let k, left, total;
+    function reset() {
+      k = 0; left = KCAP; total = 0; gBag.clear(); bBag.clear(); tot.textContent = "0"; btot.textContent = "?";
+      $$(".item", root).forEach(e => e.className = "item");
+      msg.innerHTML = "Let's try the same greedy rule: best value per kg first.";
+    }
+    function step() {
+      if (k >= order.length) return;
+      const it = order[k++], card = $(`.item[data-n="${it.n}"]`, root);
+      if (it.w <= left) {
+        gBag.add(it.w, it); left -= it.w; total += it.v; card.classList.add("taken");
+        msg.innerHTML = `${it.n} has the best ratio left (${fmt(it.v / it.w)}) and fits → take it (+${it.v}). ${left} kg left.`;
+      } else {
+        card.classList.add("skip");
+        msg.innerHTML = `${it.n} weighs ${it.w} kg but only ${left} kg is left. We can't cut it, so skip.`;
+      }
+      tot.textContent = total;
+      if (k === order.length) msg.innerHTML += ` <b>Greedy total: ${total}.</b>`;
+    }
+    function best() {
+      bBag.clear();
+      ["B", "C"].forEach(n => { const it = KNAP.find(x => x.n === n); bBag.add(it.w, it); $(`.item[data-n="${n}"]`, root).classList.add("best"); });
+      btot.textContent = "9";
+      msg.innerHTML = `<span><b class="hl-teal">B + C fill all 7 kg for value 9.</b> Greedy grabbed D first and wasted space. Greedy fails again!</span>`;
+    }
+    root.addEventListener("click", e => {
+      const a = e.target.closest("[data-act]"); if (!a) return;
+      ({ step, best, reset })[a.dataset.act]();
+    });
+    reset();
+  })();
+
+  /* ---------- recursion tree visualiser ---------- */
+  const VALUE_FILL = ["#DCE4F2", "#C8EDE8", "#FFD6C6", "#FFE8A6", "#DCD4FA", "#CFE4FF", "#F9CCDC"];
+  function TreeViz(root, o) {
+    const svg = $("svg", root);
+    const [, , W, H] = svg.getAttribute("viewBox").split(" ").map(Number);
+    const R = o.r || 19;
+    const nodes = [];
+    (function mk(v, d, p) {
+      const n = { id: nodes.length, v, d, p, ch: [], x: 0, y: 0, vis: true, hit: false };
+      nodes.push(n); if (p) p.ch.push(n);
+      o.kids(v).forEach(c => mk(c, d + 1, n));
+    })(o.root, 0, null);
+    let memo = false, sel = null, lastId = null, raf = 0;
+    const revealed = new Set([0]);
+
+    function computeVis() {
+      const seen = new Set();
+      for (const n of nodes) {
+        n.hit = false;
+        n.vis = !n.p || (n.p.vis && !n.p.hit);
+        if (!n.vis || !memo || o.isBase(n.v)) continue;
+        if (seen.has(n.v)) n.hit = true; else seen.add(n.v);
+      }
+    }
+    function layout() {
+      let leaf = 0;
+      (function place(n) {
+        const kids = n.hit ? [] : n.ch.filter(c => c.vis);
+        if (!kids.length) n.lx = leaf++;
+        else { kids.forEach(place); n.lx = (kids[0].lx + kids[kids.length - 1].lx) / 2; }
+      })(nodes[0]);
+      const vis = nodes.filter(n => n.vis);
+      const maxD = Math.max(1, ...vis.map(n => n.d));
+      const m = R + 8;
+      const gap = Math.min(o.maxGap || 110, (W - 2 * m) / Math.max(1, leaf - 1));
+      const x0 = (W - gap * (leaf - 1)) / 2;
+      const lg = Math.min(o.maxLevel || 72, (H - 2 * m) / maxD);
+      for (const n of nodes) {
+        if (n.vis) { n.tx = x0 + n.lx * gap; n.ty = m + n.d * lg; }
+        else { n.tx = n.p.tx; n.ty = n.p.ty; }
+      }
+    }
+    const shown = n => n.vis && revealed.has(n.id);
+    function render() {
+      const counts = {};
+      nodes.forEach(n => { if (shown(n) && !n.hit) counts[n.v] = (counts[n.v] || 0) + 1; });
+      let e = "", c = "";
+      for (const n of nodes) {
+        if (!shown(n)) continue;
+        if (n.p) e += `<line class="edge" x1="${n.p.x}" y1="${n.p.y}" x2="${n.x}" y2="${n.y}"/>`;
+        const rep = counts[n.v] > 1 || n.hit;
+        const fill = n.hit ? "var(--card)" : (rep ? VALUE_FILL[n.v % VALUE_FILL.length] : "var(--card)");
+        const cls = ["tn", n.hit && "hit", sel !== null && n.v !== sel && "dim", sel === n.v && "sel", n.id === lastId && "new"].filter(Boolean).join(" ");
+        c += `<g class="${cls}" data-v="${n.v}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"><circle r="${R}" style="fill:${fill}"/><text dy="0.36em">${n.v}</text></g>`;
+      }
+      svg.innerHTML = `<g>${e}</g><g>${c}</g>`;
+      const calls = nodes.filter(shown).length;
+      const callsEl = $(".calls", root); if (callsEl) callsEl.textContent = calls;
+      const chips = $(".chips", root);
+      if (chips) {
+        chips.innerHTML = Object.keys(counts).filter(v => counts[v] > 1).sort((a, b) => b - a)
+          .map(v => `<button class="chip" data-v="${v}" aria-pressed="${sel === +v}" style="background:${VALUE_FILL[v % VALUE_FILL.length]}">${o.fname}(${v}) ×${counts[v]}</button>`).join("");
+      }
+    }
+    function animate() {
+      cancelAnimationFrame(raf);
+      nodes.forEach(n => { n.sx = n.x; n.sy = n.y; });
+      const t0 = performance.now(), dur = reduceMotion ? 0 : 600;
+      (function frame(t) {
+        const k = dur ? Math.min(1, (t - t0) / dur) : 1;
+        const ease = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        nodes.forEach(n => { n.x = n.sx + (n.tx - n.sx) * ease; n.y = n.sy + (n.ty - n.sy) * ease; });
+        render();
+        if (k < 1) raf = requestAnimationFrame(frame);
+      })(t0);
+    }
+    function step() {
+      const n = nodes.find(n => n.vis && !revealed.has(n.id));
+      if (!n) return;
+      revealed.add(n.id); lastId = n.id; render();
+    }
+    function all() { nodes.forEach(n => revealed.add(n.id)); lastId = null; render(); }
+    function reset() {
+      revealed.clear(); revealed.add(0); lastId = null; sel = null;
+      if (memo) setMemo(false); else render();
+    }
+    function setMemo(on) {
+      memo = on; computeVis(); layout(); lastId = null; animate();
+      const b = $('[data-act="memo"]', root);
+      if (b) b.textContent = memo ? "Turn memoization OFF" : "Turn memoization ON";
+    }
+    computeVis(); layout(); nodes.forEach(n => { n.x = n.tx; n.y = n.ty; });
+    if (o.revealAll) nodes.forEach(n => revealed.add(n.id));
+    render();
+    root.addEventListener("click", e => {
+      const a = e.target.closest("[data-act]");
+      if (a) { ({ step, all, reset, memo: () => setMemo(!memo) })[a.dataset.act](); return; }
+      const t = e.target.closest(".tn, .chip");
+      if (t) { const v = +t.dataset.v; sel = sel === v ? null : v; render(); }
+      else if (e.target.closest("svg")) { sel = null; render(); }
+    });
+  }
+  TreeViz($("#coinTree"), { root: 6, fname: "best", kids: v => [1, 3, 4].filter(c => c <= v).map(c => v - c), isBase: v => v === 0, maxLevel: 56 });
+  TreeViz($("#fibTree"), { root: 6, fname: "fib", kids: v => v <= 1 ? [] : [v - 1, v - 2], isBase: v => v <= 1, maxLevel: 74 });
+  TreeViz($("#miniFib"), { root: 5, fname: "fib", kids: v => v <= 1 ? [] : [v - 1, v - 2], isBase: v => v <= 1, revealAll: true, r: 14, maxLevel: 40 });
+
+  /* ---------- table visualiser ---------- */
+  function TableViz(root, o) {
+    const grid = $(".tv", root);
+    const { rows, cols } = o;
+    grid.style.gridTemplateColumns = (o.rowHead ? "auto " : "") + `repeat(${cols}, var(--cs))`;
+    let html = "";
+    if (o.colHead) {
+      if (o.rowHead) html += `<div class="head">${o.corner || ""}</div>`;
+      for (let c = 0; c < cols; c++) html += `<div class="head">${o.colHead[c]}</div>`;
+    }
+    for (let r = 0; r < rows; r++) {
+      if (o.rowHead) html += `<div class="head rh">${o.rowHead[r]}</div>`;
+      for (let c = 0; c < cols; c++) html += `<div class="cell" data-r="${r}" data-c="${c}"><span class="v"></span><span class="mk"></span><span class="badge"></span></div>`;
+    }
+    grid.innerHTML = html;
+    const cells = [];
+    $$(".cell", grid).forEach(el => { (cells[+el.dataset.r] ||= [])[+el.dataset.c] = el; });
+    const expl = $(".explain", root);
+    const playBtn = $('[data-act="play"]', root);
+    let k = 0, t = 0, timer = null;
+
+    function render() {
+      const val = [], mk = [];
+      for (let r = 0; r < rows; r++) { val[r] = []; mk[r] = []; for (let c = 0; c < cols; c++) { val[r][c] = o.init ? o.init(r, c) : null; mk[r][c] = o.initMark ? o.initMark(r, c) : ""; } }
+      for (let i = 0; i < k; i++) { const s = o.steps[i]; val[s.r][s.c] = s.val; mk[s.r][s.c] = s.mark || mk[s.r][s.c]; }
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const el = cells[r][c];
+        el.className = "cell" + (o.cellClass ? " " + o.cellClass(r, c) : "");
+        el.children[0].textContent = val[r][c] === null || val[r][c] === undefined ? "" : val[r][c];
+        el.children[1].textContent = mk[r][c];
+        el.children[2].textContent = "";
+      }
+      if (t > 0) {
+        for (let i = 0; i < t; i++) { const p = o.trace[i]; const el = cells[p.r][p.c]; el.classList.add("path"); el.children[2].textContent = p.label; }
+        expl.innerHTML = o.trace[t - 1].msg;
+      } else if (k > 0) {
+        const s = o.steps[k - 1];
+        (s.deps || []).forEach(d => { const el = cells[d.r][d.c]; el.classList.add("dep"); if (d.win) el.classList.add("win"); el.children[2].textContent = d.glyph || ""; });
+        cells[s.r][s.c].classList.add("cur");
+        expl.innerHTML = s.msg;
+      } else expl.innerHTML = o.startMsg;
+    }
+    function stop() { clearInterval(timer); timer = null; if (playBtn) playBtn.textContent = "Play"; }
+    function step() { t = 0; if (k < o.steps.length) k++; else stop(); render(); }
+    const acts = {
+      step() { stop(); step(); },
+      back() { stop(); if (t > 0) t--; else if (k > 0) k--; render(); },
+      play() {
+        if (timer) { stop(); return; }
+        if (k >= o.steps.length) k = 0;
+        playBtn.textContent = "Pause";
+        timer = setInterval(() => { step(); if (k >= o.steps.length) stop(); }, reduceMotion ? 250 : o.speed || 650);
+      },
+      trace() {
+        stop(); if (!o.trace) return;
+        if (k < o.steps.length) k = o.steps.length;
+        if (t < o.trace.length) t++;
+        render(); if (o.onTrace) o.onTrace(t);
+      },
+      reset() { stop(); k = 0; t = 0; render(); if (o.onReset) o.onReset(); }
+    };
+    root.addEventListener("click", e => {
+      const a = e.target.closest("[data-act]");
+      if (a && acts[a.dataset.act]) acts[a.dataset.act]();
+    });
+    render();
+    return acts;
+  }
+
+  // Coin change dp row
+  (function () {
+    const coins = [1, 3, 4], T = 6, dp = [0], from = [null];
+    const steps = [];
+    for (let x = 1; x <= T; x++) {
+      let best = Infinity, bc = null;
+      const opts = coins.filter(c => c <= x);
+      opts.forEach(c => { if (dp[x - c] + 1 < best) { best = dp[x - c] + 1; bc = c; } });
+      dp[x] = best; from[x] = bc;
+      steps.push({
+        r: 0, c: x, val: best,
+        deps: opts.map(c => ({ r: 0, c: x - c, glyph: `−৳${c}`, win: c === bc })),
+        msg: `dp[${x}] = 1 + min(${opts.map(c => `dp[${x - c}]`).join(", ")}) = 1 + min(${opts.map(c => dp[x - c]).join(", ")}) = <b>${best}</b>` +
+          `<span class="sub">Best last coin for ৳${x} is ৳${bc}</span>`
+      });
+    }
+    const trace = [];
+    let x = T;
+    while (x > 0) {
+      const c = from[x];
+      trace.push({ r: 0, c: x, label: `use ৳${c}`, msg: `dp[${x}] = ${dp[x]} came from dp[${x - c}] plus one <b>৳${c}</b> coin.` });
+      x -= c;
+    }
+    trace.push({ r: 0, c: 0, label: "done", msg: `<b class="hl-teal">So the coins are ${trace.map(p => "৳" + from[p.c]).join(" + ")}.</b> The table also tells us <i>which</i> coins.` });
+    TableViz($("#coinTable"), {
+      rows: 1, cols: T + 1, colHead: Array.from({ length: T + 1 }, (_, i) => `৳${i}`), rowHead: ["dp"],
+      init: (r, c) => c === 0 ? 0 : null, cellClass: (r, c) => c === 0 ? "base" : "",
+      steps, trace, speed: 1100,
+      startMsg: "dp[0] = 0: making ৳0 needs no coins. Now fill each amount from left to right."
+    });
+  })();
+
+  // 0-1 knapsack table
+  (function () {
+    const n = KNAP.length, W = KCAP;
+    const K = [Array(W + 1).fill(0)], took = [Array(W + 1).fill(false)];
+    const steps = [];
+    for (let i = 1; i <= n; i++) {
+      const it = KNAP[i - 1]; K[i] = []; took[i] = [];
+      for (let w = 0; w <= W; w++) {
+        const skip = K[i - 1][w];
+        const take = it.w <= w ? K[i - 1][w - it.w] + it.v : null;
+        const tk = take !== null && take > skip;
+        K[i][w] = tk ? take : skip; took[i][w] = tk;
+        const deps = [{ r: i - 1, c: w, glyph: "skip", win: !tk }];
+        if (take !== null) deps.push({ r: i - 1, c: w - it.w, glyph: `take +${it.v}`, win: tk });
+        steps.push({
+          r: i, c: w, val: K[i][w], mark: tk ? "✓" : "", deps,
+          msg: `Item <b>${it.n}</b> (${it.w} kg, value ${it.v}), space ${w} kg:<br>skip → ${skip}` +
+            (take !== null ? ` &nbsp;·&nbsp; take → ${K[i - 1][w - it.w]} + ${it.v} = ${take}` : ` &nbsp;·&nbsp; too heavy to take`) +
+            ` &nbsp;⇒ <b>${K[i][w]}</b>`
+        });
+      }
+    }
+    const trace = [];
+    let w = W, picked = [];
+    for (let i = n; i >= 1; i--) {
+      const it = KNAP[i - 1];
+      if (took[i][w]) {
+        trace.push({ r: i, c: w, label: `take ${it.n}`, msg: `dp[${i}][${w}] = ${K[i][w]} ≠ dp[${i - 1}][${w}] = ${K[i - 1][w]}, so we <b>took ${it.n}</b>. Jump to ${w - it.w} kg.` });
+        picked.push(it.n); w -= it.w;
+      } else {
+        trace.push({ r: i, c: w, label: `skip ${it.n}`, msg: `dp[${i}][${w}] = dp[${i - 1}][${w}], so item <b>${it.n} was skipped</b>.` });
+      }
+    }
+    trace.push({ r: 0, c: w, label: "done", msg: `<b class="hl-teal">Best bag: ${picked.reverse().join(" + ")}, value ${K[n][W]}.</b>` });
+    TableViz($("#knapTable"), {
+      rows: n + 1, cols: W + 1, corner: "<small>items ↓ / kg →</small>",
+      colHead: Array.from({ length: W + 1 }, (_, i) => i),
+      rowHead: ["none"].concat(KNAP.map(it => `<span>${it.n}<small>${it.w} kg · ${it.v}</small></span>`)),
+      init: (r, c) => r === 0 ? 0 : null, cellClass: r => r === 0 ? "base" : "",
+      steps, trace, speed: 450,
+      startMsg: "Row 0: with no items, every bag is worth 0. Fill row by row. ✓ marks cells where taking the item won."
+    });
+  })();
+
+  // Grid paths
+  (function () {
+    const R = 5, C = 6;
+    const rocks = new Set(["1,1", "1,4", "2,2", "3,0", "3,4"]);
+    const isRock = (r, c) => rocks.has(r + "," + c);
+    const ways = [];
+    const steps = [];
+    for (let r = 0; r < R; r++) {
+      ways[r] = [];
+      for (let c = 0; c < C; c++) {
+        if (isRock(r, c)) { ways[r][c] = 0; steps.push({ r, c, val: 0, msg: `A rock! No path can pass through (${r}, ${c}) → <b>0</b> ways.` }); continue; }
+        if (r === 0 && c === 0) { ways[r][c] = 1; steps.push({ r, c, val: 1, msg: "Start: there is exactly <b>1</b> way to be here (do nothing)." }); continue; }
+        const up = r > 0 ? ways[r - 1][c] : 0, lf = c > 0 ? ways[r][c - 1] : 0;
+        ways[r][c] = up + lf;
+        const deps = [];
+        if (r > 0) deps.push({ r: r - 1, c, glyph: `↓ ${up}`, win: up > 0 });
+        if (c > 0) deps.push({ r, c: c - 1, glyph: `→ ${lf}`, win: lf > 0 });
+        const last = r === R - 1 && c === C - 1;
+        steps.push({
+          r, c, val: ways[r][c], deps,
+          msg: `from above ${r > 0 ? up : "(edge) 0"} + from the left ${c > 0 ? lf : "(edge) 0"} = <b>${ways[r][c]}</b>` +
+            (last ? ` <b class="hl-teal">&nbsp;The robot has ${ways[r][c]} different paths to the flag!</b>` : "")
+        });
+      }
+    }
+    TableViz($("#gridDemo"), {
+      rows: R, cols: C,
+      cellClass: (r, c) => isRock(r, c) ? "blocked" : (r === 0 && c === 0) ? "start" : (r === R - 1 && c === C - 1) ? "finish" : "",
+      initMark: (r, c) => isRock(r, c) ? "rock" : (r === 0 && c === 0) ? "S" : (r === R - 1 && c === C - 1) ? "⚑" : "",
+      steps, speed: 550,
+      startMsg: "Fill row by row, left to right. Each cell = number of ways to reach it."
+    });
+  })();
+
+  // Edit distance
+  (function () {
+    const root = $("#editDemo");
+    const A = "HORSE", B = "ROS", n = A.length, m = B.length;
+    const D = [], ch = [];
+    for (let i = 0; i <= n; i++) { D[i] = []; ch[i] = []; for (let j = 0; j <= m; j++) { D[i][j] = i === 0 ? j : j === 0 ? i : null; ch[i][j] = i === 0 ? (j ? "ins" : null) : j === 0 ? "del" : null; } }
+    const steps = [];
+    const glyph = { match: "↖", rep: "↖", del: "↑", ins: "←" };
+    for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
+      const a = A[i - 1], b = B[j - 1];
+      const sub = `<span class="sub">Turn “${A.slice(0, i)}” into “${B.slice(0, j)}”</span>`;
+      if (a === b) {
+        D[i][j] = D[i - 1][j - 1]; ch[i][j] = "match";
+        steps.push({ r: i, c: j, val: D[i][j], mark: "↖", deps: [{ r: i - 1, c: j - 1, glyph: "↖ match", win: true }], msg: `‘${a}’ = ‘${b}’: letters match, no edit needed. Copy ↖ → <b>${D[i][j]}</b>${sub}` });
+      } else {
+        const rep = D[i - 1][j - 1], del = D[i - 1][j], ins = D[i][j - 1];
+        const best = Math.min(rep, del, ins);
+        const c = rep === best ? "rep" : del === best ? "del" : "ins";
+        D[i][j] = 1 + best; ch[i][j] = c;
+        steps.push({
+          r: i, c: j, val: D[i][j], mark: glyph[c],
+          deps: [
+            { r: i - 1, c: j - 1, glyph: "↖ replace", win: c === "rep" },
+            { r: i - 1, c: j, glyph: "↑ delete", win: c === "del" },
+            { r: i, c: j - 1, glyph: "← insert", win: c === "ins" }
+          ],
+          msg: `‘${a}’ ≠ ‘${b}’: 1 + min(replace ${rep}, delete ${del}, insert ${ins}) = <b>${D[i][j]}</b>${sub}`
+        });
+      }
+    }
+    // trace back
+    const trace = [], ops = [];
+    let i = n, j = m;
+    while (i > 0 || j > 0) {
+      const c = ch[i][j];
+      if (c === "match") { trace.push({ r: i, c: j, label: `keep ${A[i - 1]}`, msg: `‘${A[i - 1]}’ matches, free. Move ↖.` }); ops.push({ t: "match", ch: A[i - 1] }); i--; j--; }
+      else if (c === "rep") { trace.push({ r: i, c: j, label: `${A[i - 1]}→${B[j - 1]}`, msg: `<b>Replace</b> ‘${A[i - 1]}’ with ‘${B[j - 1]}’. Move ↖.` }); ops.push({ t: "rep", ch: B[j - 1], from: A[i - 1] }); i--; j--; }
+      else if (c === "del") { trace.push({ r: i, c: j, label: `del ${A[i - 1]}`, msg: `<b>Delete</b> ‘${A[i - 1]}’. Move ↑.` }); ops.push({ t: "del", ch: A[i - 1] }); i--; }
+      else { trace.push({ r: i, c: j, label: `ins ${B[j - 1]}`, msg: `<b>Insert</b> ‘${B[j - 1]}’. Move ←.` }); ops.push({ t: "ins", ch: B[j - 1] }); j--; }
+    }
+    const edits = ops.filter(o => o.t !== "match").length;
+    trace.push({ r: 0, c: 0, label: "start", msg: `<b class="hl-teal">Back at the start: ${edits} edits in total.</b> Now press <b>Play the edits</b>.` });
+    ops.reverse();
+
+    // word morph snapshots
+    const snaps = [];
+    let w = A.split("").map(c => ({ ch: c, st: "" })), p = 0;
+    const clone = () => w.map(x => ({ ...x }));
+    snaps.push({ tiles: clone(), cap: `Start: ${A}` });
+    ops.forEach(op => {
+      if (op.t === "match") { w[p].st = "ok"; p++; snaps.push({ tiles: clone(), cap: `Keep ‘${op.ch}’` }); }
+      else if (op.t === "rep") { w[p] = { ch: op.ch, st: "rep" }; p++; snaps.push({ tiles: clone(), cap: `Replace ‘${op.from}’ → ‘${op.ch}’: ${w.map(x => x.ch).join("")}` }); }
+      else if (op.t === "del") { w[p].st = "del"; snaps.push({ tiles: clone(), cap: `Delete ‘${op.ch}’` }); w.splice(p, 1); }
+      else { w.splice(p, 0, { ch: op.ch, st: "ins" }); p++; snaps.push({ tiles: clone(), cap: `Insert ‘${op.ch}’: ${w.map(x => x.ch).join("")}` }); }
+    });
+    snaps.push({ tiles: w.map(x => ({ ch: x.ch, st: "ok" })), cap: `Done: ${A} → ${B} in ${edits} edits` });
+    const wordEl = $(".word", root), capEl = $(".morph-cap", root);
+    let mt = null;
+    function showSnap(s) {
+      wordEl.innerHTML = s.tiles.map(x => `<div class="tile ${x.st}">${x.ch}</div>`).join("");
+      capEl.textContent = s.cap;
+    }
+    function stopMorph() { clearInterval(mt); mt = null; }
+    function morph() {
+      stopMorph(); let q = 0; showSnap(snaps[0]);
+      mt = setInterval(() => { q++; if (q >= snaps.length) { stopMorph(); return; } showSnap(snaps[q]); }, reduceMotion ? 500 : 1100);
+    }
+    root.addEventListener("click", e => { const a = e.target.closest('[data-act="morph"]'); if (a) morph(); });
+    showSnap(snaps[0]);
+
+    TableViz(root, {
+      rows: n + 1, cols: m + 1, corner: "",
+      colHead: ["“”"].concat(B.split("")), rowHead: ["“”"].concat(A.split("")),
+      init: (r, c) => r === 0 ? c : c === 0 ? r : null,
+      initMark: (r, c) => r === 0 && c > 0 ? "←" : c === 0 && r > 0 ? "↑" : "",
+      cellClass: (r, c) => r === 0 || c === 0 ? "base" : "",
+      steps, trace, speed: 900,
+      startMsg: "Base cases: turning “HOR” into “” takes 3 deletes (↑). Turning “” into “RO” takes 2 inserts (←).",
+      onReset() { stopMorph(); showSnap(snaps[0]); }
+    });
+  })();
+
+  /* ---------- quiz ---------- */
+  $$(".qcard").forEach(b => b.addEventListener("click", () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true")));
+
+  /* ---------- start ---------- */
+  let start = 0;
+  const h = parseInt((location.hash || "").slice(1), 10);
+  if (h >= 1 && h <= slides.length) start = h - 1;
+  slides.forEach(s => s.classList.remove("active"));
+  cur = start; go(start);
+})();
+</script>
+</body>
+</html>
